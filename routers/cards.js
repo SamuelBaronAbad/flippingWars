@@ -10,7 +10,10 @@ api.get("/:id", cardsController.cardFind);
 api.get("/", cardsController.cardFindAll)
 
 // Update
-api.put("/:id", cardsController.cardUpdate);
+api.put("/", cardsController.cardUpdate);
+
+// New Game
+api.post("/", cardsController.newRecordGame)
 
 
 
