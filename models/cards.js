@@ -1,8 +1,10 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
+
 const cardSchema = Schema({
-    id: Number,
+    _id: false,
+    num: Number,
     values: Array,
     status: Boolean
 })

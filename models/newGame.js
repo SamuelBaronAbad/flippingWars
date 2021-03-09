@@ -1,13 +1,14 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
-const Users = require("./user");
-const Cards = require("./cards");
-
 
 const newRecordSchema = Schema ({
     id: Number,
     users: [],
-    cards: []
+    cards: [],
+    status: {
+        type: Boolean,
+        default: true
+    }
 },{
     collection: "records",
     timestamps: {

@@ -30,7 +30,7 @@ function cardFind(req, res) {
             if (!data) {
                 res.status(404).send({ message: "Carta no encontrada" });
             } else {
-                res.send(data);
+                res.status(200).send(data);
             }
         })
         .catch(err => {
@@ -40,17 +40,14 @@ function cardFind(req, res) {
 
 // actualiza una carta 
 function cardUpdate(req, res) {
-  
-    //const {status, values} = req.body;
-    const id = req.params.id;
-
-    Card.findOneAndUpdate({ id }, req.body, { new: true })
+    const id = req.body.id;
+    NewGame.findOneAndUpdate({ id }, req.body, {new: true})
         .then(data => {
             if (!data) {
                 res.status(404).send({ message: "Carta no encontrada" })
             } else {
-                res.send({ message: "Carta Actualizada" })
-                console.log("carta actualizada: ", data);
+                res.send({ message: "Partida Actualizada" })
+                console.log("Partida actualizada: ", data);
             }
         })
         .catch(err => {
@@ -68,29 +65,33 @@ function newRecordGame (req, res){
  
     newGame.save((err, newGameStored) => {
         if(err){
-            res.status(500).send({ message: err.message || "Error del servidor" });
+            res.status(500).send({ message: err.message || "Error al crear nuevo registro de partida" });
         }else {
             res.status(200).send({newGame: newGameStored});
         }
     });
-   
-   /*  cards.forEach(item => {
-        card.id = item.id;
-        card.values = item.values;
-        card.status = item.status;
-        item.save((err, cardStored) => {
-            if(err){
-                res.status(500).send({ message: err.message || "Error del servidor" });
-            }else {
-                res.status(200).send({card: cardStored})
-            }
-        })
-    }); */
+}
+
+// Devuelve el campo 'id' => ({}, 'id') del ultimo registro (ordena => sort({los id=> id: en orden desc => -1}) y devuelve solo 1 => limit(1)
+function idGame (req, res) {
+
+    NewGame.find({}, 'id').sort({id:-1}).limit(1)
+    .then(data => {
+        if(!data) {
+            res.status(404).send({message: "La partida no existe"})
+        }else{
+            res.status(200).send(data)
+        }
+    })
+    .catch(err => {
+        res.status(500).send({message: err.message || "Ha ocurrido un error al encontrar la partida"})
+    })
 }
 
 module.exports = {
     cardFind,
     cardUpdate,
     cardFindAll,
-    newRecordGame
+    newRecordGame,
+    idGame
 };
