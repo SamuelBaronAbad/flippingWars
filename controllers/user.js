@@ -1,6 +1,8 @@
 const User = require("../models/user");
 const bcrypt = require("bcrypt-nodejs");
 const jwt = require("../services/jwt");
+const fs = require("fs");
+const path = require("path");
 
 function signUp(req, res) {
     console.log(req.body);
@@ -25,7 +27,7 @@ function signUp(req, res) {
                     console.log(user.password);
                     user.save((err, userStored) => {
                         if (err) {
-                            res.status(500).send({ message: "Error al crear el usuario" })
+                            res.status(500).send({ message: "El email ya existe" })
                         } else {
                             if (!userStored) {
                                 res.status(404).send({ message: "Error al crear usuario" })
@@ -59,14 +61,14 @@ function signIn(req, res) {
                 } else if (!check) {
                     res.status(404).send({ message: "Contraseña erronea" });
                 } else {
-                    if (!userStored.active){
-                        res.status(200).send({code: 200, message: "El usuario no está activo"})
-                    }else {
-                    res.status(200).send({
-                        accessToken: jwt.createAccessToken(userStored),
-                        refreshToken: jwt.createRefreshToken(userStored)
-                    })
-                }
+                    if (!userStored.active) {
+                        res.status(200).send({ code: 200, message: "El usuario no está activo" })
+                    } else {
+                        res.status(200).send({
+                            accessToken: jwt.createAccessToken(userStored),
+                            refreshToken: jwt.createRefreshToken(userStored)
+                        })
+                    }
                 }
             }
             )
@@ -76,14 +78,118 @@ function signIn(req, res) {
     })
 }
 
-function findUser (req, res){
+function findUser(req, res) {
     const email = req.params.email;
-    User.findOne({email})
-    .then (user => {
-        if(!user){
-            res.status(404).send({ message: "No se ha encontrado al usuario" });
+    User.findOne({ email })
+        .then(user => {
+            if (!user) {
+                res.status(404).send({ message: "No se ha encontrado al usuario" });
+            } else {
+                res.status(200).send({ name: user.name, email: user.email })
+            }
+        })
+}
+
+function findAll(req, res) {
+    User.find({})
+        .then(data => {
+            if (!data) {
+                res.status(404).send({ message: "Ha ocurrido un error muy grave, los usuarios no se encuentran" });
+            } else {
+                res.send(data);
+            }
+        })
+        .catch(err => {
+            res.status(500).send({ message: err.message || "Error del servidor" });
+        })
+}
+
+function usersActive(req, res) {
+    // Query recibira todo lo que le ponga en la url: /find-users-active?active=true&name=Samuel...
+    const query = req.query;
+    User.find({ active: query.active })
+        .then(data => {
+            if (!data) {
+                res.status(404).send({ message: "Ha ocurrido un error muy grave, los usuarios no se encuentran" });
+            } else {
+                res.send(data);
+            }
+        })
+        .catch(err => {
+            res.status(500).send({ message: err.message || "Error del servidor" });
+        })
+}
+
+function uploadAvatar(req, res) {
+    const params = req.params;
+
+    User.findById({ _id: params.id }, (err, userData) => {
+        if (err) {
+            res.status(500).send({ message: "Error del servidor" })
+        } else {
+            if (!userData) {
+                res.status(404).send({ message: "No se ha encontrado ningún usuario" })
+            } else {
+                let user = userData;
+                if (req.files) {
+                    let filePath = req.files.avatar.path
+                    let fileSplit = filePath.split("\\");
+                    let fileName = fileSplit[2];
+                    let fileExtension = fileName.split(".")[1]
+
+                    if (fileExtension !== "png" && fileExtension !== "jpg") {
+                        res.status(200).send({ message: "Extensión de imagen no válida (Solo permitida .png o .jpg)" })
+                    } else {
+                        user.avatar = fileName;
+                        User.findByIdAndUpdate({ _id: params.id }, user, (err, userResult) => {
+                            if (err) {
+                                res.status(500).send({ message: "Error del servidor" })
+                            } else {
+                                if (!userResult) {
+                                    res.status(404).send({ message: "No se ha encontrado ningún usuario" })
+                                } else {
+                                    res.status(200).send({ avatarName: fileName })
+                                }
+                            }
+                        })
+                    }
+                    // path.dirname(pathFile)
+                }
+
+            }
+        }
+    })
+
+}
+
+function findAvatar(req, res) {
+    const avatarName = req.params.avatarName;
+    const filePath = "./uploads/avatar/" + avatarName;
+   
+    fs.exists(filePath, exists => {
+        if (!exists){
+            console.log(exists);
+            res.status(404).send({ message: "El avatar que buscas no existe" })
         }else {
-            res.status(200).send({name: user.name, email: user.email})
+            res.sendFile(path.resolve(filePath));
+        }
+    })
+}
+
+function updateUser (req, res){
+    const userData = req.body;
+    const params = req.params;
+
+    User.findByIdAndUpdate({_id: params.id}, userData, (err, userUpdate) => {
+        if (err){
+            console.log(err);
+            res.status(500).send({ message: "Error del servidor" })
+        } else {
+            if (!userUpdate){
+                res.status(404).send({ message: "No se ha encontrado ningún usuario" })
+            } else {
+                res.status(200).send({ message: "Usuario actualizado correctamente"})
+            }
         }
     })
 }
@@ -91,5 +197,10 @@ function findUser (req, res){
 module.exports = {
     signIn,
     signUp,
-    findUser
+    findUser,
+    findAll,
+    usersActive,
+    uploadAvatar,
+    findAvatar,
+    updateUser
 }

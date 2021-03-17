@@ -21,4 +21,6 @@ api.post("/", cardsController.newRecordGame)
 
 
 
+
+
 module.exports = api;
